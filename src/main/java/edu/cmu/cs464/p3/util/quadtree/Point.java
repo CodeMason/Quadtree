@@ -1,3 +1,5 @@
+package edu.cmu.cs464.p3.util.quadtree;
+
 public class Point<T> implements Comparable<Point> {
 
     private double x;

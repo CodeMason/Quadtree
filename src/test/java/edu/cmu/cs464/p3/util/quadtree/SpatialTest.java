@@ -1,3 +1,5 @@
+package edu.cmu.cs464.p3.util.quadtree;
+
 import edu.cmu.cs464.p3.util.quadtree.QuadTree;
 import edu.cmu.cs464.p3.util.quadtree.Point;
 import org.junit.Test;

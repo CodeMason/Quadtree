@@ -1,3 +1,5 @@
+package edu.cmu.cs464.p3.util.quadtree;
+
 public class Node<T> {
 
     private double x;
