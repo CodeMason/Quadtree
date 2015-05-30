@@ -34,9 +34,9 @@ public class QuadTreeTest extends junit.framework.TestCase {
     @Test
     public void testGetCount() {
         QuadTree qt = getTree();
-        assertEquals("Count should be 5", 5, qt.getCount());
+        assertEquals("Count should be 5", 5, qt.size());
         qt.remove(50, 32);
-        assertEquals("Count should be 4", 4, qt.getCount());
+        assertEquals("Count should be 4", 4, qt.size());
     }
 
     @Test
