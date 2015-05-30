@@ -9,10 +9,10 @@ public class Node<T> {
     private Node<T> opt_parent;
     private Point<T> point;
     private NodeType nodetype = NodeType.EMPTY;
-    private Node nw;
-    private Node ne;
-    private Node sw;
-    private Node se;
+    private Node<T> nw;
+    private Node<T> ne;
+    private Node<T> sw;
+    private Node<T> se;
 
     /**
      * Constructs a new quad tree node.
