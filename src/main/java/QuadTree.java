@@ -8,7 +8,7 @@ import java.util.List;
  * The implementation currently requires pre-determined bounds for data as it
  * can not rebalance itself to that degree.
  */
-public class QuadTree {
+public class QuadTree<T> {
 
 
     private Node root_;
@@ -43,7 +43,7 @@ public class QuadTree {
      * @param {double} y The y-coordinate.
      * @param {Object} value The value associated with the point.
      */
-    public void set(double x, double y, Object value) {
+    public void set(double x, double y, T value) {
 
         Node root = this.root_;
         if (x < root.getX() || y < root.getY() || x > root.getX() + root.getW() || y > root.getY() + root.getH()) {
@@ -65,7 +65,7 @@ public class QuadTree {
      *         doesn't exist, or undefined if the node doesn't exist and no default
      *         has been provided.
      */
-    public Object get(double x, double y, Object opt_default) {
+    public T get(double x, double y, T opt_default) {
         Node node = this.find(this.root_, x, y);
         return node != null ? node.getPoint().getValue() : opt_default;
     }
@@ -78,10 +78,10 @@ public class QuadTree {
      * @return {Object} The value of the node that was removed, or null if the
      *         node doesn't exist.
      */
-    public Object remove(double x, double y) {
+    public T remove(double x, double y) {
         Node node = this.find(this.root_, x, y);
         if (node != null) {
-            Object value = node.getPoint().getValue();
+            T value = node.getPoint().getValue();
             node.setPoint(null);
             node.setNodeType(NodeType.EMPTY);
             this.balance(node);
@@ -131,68 +131,55 @@ public class QuadTree {
     }
 
     /**
-     * Returns an array containing the coordinates of each point stored in the tree.
-     * @return {Array.<Point>} Array of coordinates.
+     * Returns a set containing the coordinates of each point stored in the tree.
+     * @return coordinates.
      */
-    public Point[] getKeys() {
-        final List<Point> arr = new ArrayList<Point>();
-        this.traverse(this.root_, new Func() {
-            @Override
-            public void call(QuadTree quadTree, Node node) {
+    public Set<Point> getKeys() {
+        final Set<Point> arr = new HashSet<>();
+        this.traverse(this.root_, (quadTree, node) -> 
                 arr.add(node.getPoint());
-            }
-        });
-        return arr.toArray(new Point[arr.size()]);
+            );
+        return arr;
     }
 
     /**
-     * Returns an array containing all values stored within the tree.
-     * @return {Array.<Object>} The values stored within the tree.
+     * Returns a set containing all values stored within the tree.
+     * @return The values stored within the tree.
      */
-    public Object[] getValues() {
-        final List<Object> arr = new ArrayList<Object>();
-        this.traverse(this.root_, new Func() {
-            @Override
-            public void call(QuadTree quadTree, Node node) {
-                arr.add(node.getPoint().getValue());
-            }
-        });
+    public Set<T> getValues() {
+        final Set<T> arr = new HashSet<>();
+        this.traverse(this.root_, (quadTree, node) -> 
+                arr.add(node.getPoint().getValue())
+            );
 
-        return arr.toArray(new Object[arr.size()]);
+        return arr;
     }
 
     public Point[] searchIntersect(final double xmin, final double ymin, final double xmax, final double ymax) {
         final List<Point> arr = new ArrayList<Point>();
-        this.navigate(this.root_, new Func() {
-            @Override
-            public void call(QuadTree quadTree, Node node) {
+        this.navigate(this.root_, (quadTree, node) -> {
                 Point pt = node.getPoint();
                 if (pt.getX() < xmin || pt.getX() > xmax || pt.getY() < ymin || pt.getY() > ymax) {
                     // Definitely not within the polygon!
                 } else {
                     arr.add(node.getPoint());
                 }
-
-            }
-        }, xmin, ymin, xmax, ymax);
+            }, xmin, ymin, xmax, ymax);
         return arr.toArray(new Point[arr.size()]);
     }
 
     public Point[] searchWithin(final double xmin, final double ymin, final double xmax, final double ymax) {
         final List<Point> arr = new ArrayList<Point>();
-        this.navigate(this.root_, new Func() {
-            @Override
-            public void call(QuadTree quadTree, Node node) {
+        this.navigate(this.root_, (quadTree, node) -> {
                 Point pt = node.getPoint();
                 if (pt.getX() > xmin && pt.getX() < xmax && pt.getY() > ymin && pt.getY() < ymax) {
                     arr.add(node.getPoint());
                 }
-            }
-        }, xmin, ymin, xmax, ymax);
+            }, xmin, ymin, xmax, ymax);
         return arr.toArray(new Point[arr.size()]);
     }
 
-    public void navigate(Node node, Func func, double xmin, double ymin, double xmax, double ymax) {
+    public void navigate(Node node, BiConsumer<Quadtree, Node> func, double xmin, double ymin, double xmax, double ymax) {
         switch (node.getNodeType()) {
             case LEAF:
                 func.call(this, node);
@@ -223,21 +210,18 @@ public class QuadTree {
      * Clones the quad-tree and returns the new instance.
      * @return {QuadTree} A clone of the tree.
      */
-    public QuadTree clone() {
+    public QuadTree<T> clone() {
         double x1 = this.root_.getX();
         double y1 = this.root_.getY();
         double x2 = x1 + this.root_.getW();
         double y2 = y1 + this.root_.getH();
-        final QuadTree clone = new QuadTree(x1, y1, x2, y2);
+        final QuadTree<T> clone = new QuadTree<>(x1, y1, x2, y2);
         // This is inefficient as the clone needs to recalculate the structure of the
         // tree, even though we know it already.  But this is easier and can be
         // optimized when/if needed.
-        this.traverse(this.root_, new Func() {
-            @Override
-            public void call(QuadTree quadTree, Node node) {
-                clone.set(node.getPoint().getX(), node.getPoint().getY(), node.getPoint().getValue());
-            }
-        });
+        this.traverse(this.root_, (quadTree, node) ->
+                clone.set(node.getPoint().getX(), node.getPoint().getY(), node.getPoint().getValue())
+            );
 
 
         return clone;
@@ -253,7 +237,7 @@ public class QuadTree {
      *     return value is irrelevant.
      * @private
      */
-    public void traverse(Node node, Func func) {
+    public void traverse(Node node, BiConsumer<Quadtree<T>, Node func) {
         switch (node.getNodeType()) {
             case LEAF:
                 func.call(this, node);
