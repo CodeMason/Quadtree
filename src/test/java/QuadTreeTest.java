@@ -1,10 +1,17 @@
+import edu.cmu.cs464.p3.util.quadtree.Point;
+import edu.cmu.cs464.p3.util.quadtree.Node;
+import edu.cmu.cs464.p3.util.quadtree.QuadTree;
+import edu.cmu.cs464.p3.util.quadtree.NodeType;
+import java.util.ArrayList;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 public class QuadTreeTest extends junit.framework.TestCase {
 
-    private QuadTree getTree() {
+    private QuadTree<String> getTree() {
         QuadTree qt = new QuadTree(0, 0, 100, 100);
         qt.set(5, 20, "Foo");
         qt.set(50, 32, "Bar");
@@ -32,8 +39,7 @@ public class QuadTreeTest extends junit.framework.TestCase {
 
     @Test
     public void testGetKeys() {
-        Point[] keys = getTree().getKeys();
-        Arrays.sort(keys);
+        Point[] keys = toSortedArray(getTree().getKeys());
         String keyString = Arrays.asList(keys).toString();
         String expected = "[(5.0, 20.0), (12.0, 0.0), (47.0, 96.0), (50.0, 32.0), (50.0, 50.0)]";
         assertEquals("Sorted keys should be " + expected, expected, keyString);
@@ -41,9 +47,10 @@ public class QuadTreeTest extends junit.framework.TestCase {
 
     @Test
     public void testGetValues() {
-        Object[] values = getTree().getValues();
-        Arrays.sort(values);
-        String valueString = Arrays.asList(values).toString();
+        Set<String> values = getTree().values();
+        List<String> list = new ArrayList<>(values);
+        list.sort(String::compareTo);
+        String valueString = list.toString();
         assertEquals("Sorted values should be [Bar, Baz, Bing, Bong, Foo]", "[Bar, Baz, Bing, Bong, Foo]", valueString);
     }
 
@@ -53,32 +60,34 @@ public class QuadTreeTest extends junit.framework.TestCase {
         assertTrue("Should contain (5, 20)", qt.contains(5, 20));
         assertFalse("Should not contain (13, 13)", qt.contains(13, 13));
     }
-
+    private <K> Point[] toSortedArray(Set<Point<K>> pointSet){
+        Point[] points = pointSet.toArray(new Point[0]);
+        Arrays.sort(points);
+        return points;
+    }
     @Test
     public void testSearchIntersects() {
         QuadTree qt = getTree();
-        Point[] points = qt.searchIntersect(4, 0, 51, 98);
-        Arrays.sort(points);
+        Point[] points = toSortedArray(qt.searchIntersect(4, 0, 51, 98));
         String keyString = Arrays.asList(points).toString();
         String expected = "[(5.0, 20.0), (12.0, 0.0), (47.0, 96.0), (50.0, 32.0), (50.0, 50.0)]";
         assertEquals("Sorted keys should be " + expected, expected, keyString);
 
 
-        Point[] points2 = qt.searchIntersect(5, 0, 50, 96);
-        Arrays.sort(points2);
+        Point[] points2 = toSortedArray(qt.searchIntersect(5, 0, 50, 96));
+        
         String keyString2 = Arrays.asList(points).toString();
         String expected2 = "[(5.0, 20.0), (12.0, 0.0), (47.0, 96.0), (50.0, 32.0), (50.0, 50.0)]";
         assertEquals("Sorted keys should be " + expected2, expected2, keyString2);
 
-        Point[] points3 = qt.searchIntersect(55, 0, 50, 96);
+        Point[] points3 = toSortedArray(qt.searchIntersect(55, 0, 50, 96));
         assertEquals("Should return no points for higher x",0,points3.length);
     }
 
     @Test
     public void testSearchWithin() {
         QuadTree qt = getTree();
-        Point[] points = qt.searchWithin(4, -1, 51, 98);
-        Arrays.sort(points);
+        Point[] points = toSortedArray(qt.searchWithin(4, -1, 51, 98));
         String keyString = Arrays.asList(points).toString();
         String expected = "[(5.0, 20.0), (12.0, 0.0), (47.0, 96.0), (50.0, 32.0), (50.0, 50.0)]";
         assertEquals("Sorted keys should be " + expected, expected, keyString);

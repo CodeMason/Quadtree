@@ -1,3 +1,5 @@
+import edu.cmu.cs464.p3.util.quadtree.QuadTree;
+import edu.cmu.cs464.p3.util.quadtree.Point;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -5,6 +7,7 @@ import java.io.FileReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -57,9 +60,9 @@ public class SpatialTest {
         {
             qt.set(pt.getX(), pt.getY(), pt.getValue());
         }
-        Point[] points = qt.searchIntersect(-84.375,27.059,-78.75,31.952 );
+        Set<Point> points = qt.searchIntersect(-84.375,27.059,-78.75,31.952 );
         //System.out.print( Arrays.asList(points).toString());
-        assertEquals(60,points.length);
+        assertEquals(60,points.size());
 
     }
 
