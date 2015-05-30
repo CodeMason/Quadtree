@@ -63,6 +63,24 @@ public class Point<T> implements Comparable<Point> {
             }
             return 0;
         }
-
+    }
+    public class PointImmutable{
+        public double getX() {
+            return x;
+        }
+            public double getY() {
+            return y;
+        }
+        public T getValue() {
+            return opt_value;
+        }
+        @Override
+        public String toString() {
+            return "(" + x + ", " + y + ")";
+        }
+    }
+    private PointImmutable immutableVersion = null;
+    public PointImmutable getImmutable(){
+        return immutableVersion == null ? immutableVersion = new PointImmutable() : immutableVersion;
     }
 }

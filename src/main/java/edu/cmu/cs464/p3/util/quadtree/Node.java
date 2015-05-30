@@ -120,4 +120,56 @@ public class Node<T> {
     public Node<T> getSe() {
         return se;
     }
+    public class NodeImmutable{
+
+        private NodeImmutable() {}
+        
+        public double getY() {
+            return y;
+        }
+
+        public double getX() {
+            return x;
+        }
+
+        public double getW() {
+            return w;
+        }
+
+        public double getH() {
+            return h;
+        }
+
+        public NodeImmutable getParent() {
+            return opt_parent.getImmutable();
+        }
+
+        public Point.PointImmutable getPoint() {
+            return point.getImmutable();
+        }
+        public NodeType getNodeType() {
+            return nodetype;
+        }
+        
+        public NodeImmutable getNe() {
+            return ne.getImmutable();
+        }
+
+        public NodeImmutable getNw() {
+            return nw.getImmutable();
+        }
+
+        public NodeImmutable getSw() {
+            return sw.getImmutable();
+        }
+
+        public NodeImmutable getSe() {
+            return se.getImmutable();
+        }
+        Node getPeer(){return Node.this;}
+    }
+    private NodeImmutable immutableVersion = null;
+    public NodeImmutable getImmutable(){
+        return immutableVersion == null ? immutableVersion = new NodeImmutable() : immutableVersion;
+    }
 }

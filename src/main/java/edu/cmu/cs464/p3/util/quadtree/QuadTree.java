@@ -1,16 +1,13 @@
 package edu.cmu.cs464.p3.util.quadtree;
 
 import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import javax.vecmath.Point2d;
+import javax.vecmath.Vector2d;
 
 /**
  * Datastructure: A point Quad Tree for representing 2D data. Each
@@ -19,12 +16,12 @@ import javax.vecmath.Point2d;
  * The implementation currently requires pre-determined bounds for data as it
  * can not rebalance itself to that degree.
  * 
- * It's important to note that we use Point2d as the key for this map, 
+ * It's important to note that we use Vector2d as the key for this map, 
  * but the keys added/recieved from this map are all copied so there should
  * be no problems using this as a normal map (unless if there's some multi
  * threading funny business going on).
  */
-public class QuadTree<T> implements Map<Point2d, T>{
+public class QuadTree<T> implements Map<Vector2d, T>{
     private Node<T> root_;
     private int count_ = 0;
 
@@ -125,13 +122,6 @@ public class QuadTree<T> implements Map<Point2d, T>{
     }
 
     /**
-     * @return {number} The number of items in the tree.
-     */
-    public int getCount() {
-        return this.count_;
-    }
-
-    /**
      * Removes all items from the tree.
      */
     public void clear() {
@@ -193,7 +183,7 @@ public class QuadTree<T> implements Map<Point2d, T>{
         return arr;
     }
 
-    public void navigate(Node<T> node, BiConsumer<QuadTree, Node<T>> func, double xmin, double ymin, double xmax, double ymax) {
+    public void navigate(Node<T> node, BiConsumer<QuadTree<T>, Node<T>> func, double xmin, double ymin, double xmax, double ymax) {
         switch (node.getNodeType()) {
             case LEAF:
                 func.accept(this, node);
@@ -267,6 +257,25 @@ public class QuadTree<T> implements Map<Point2d, T>{
 				break;
         }
     }
+    
+    /**
+     * traverses and folds a value {@code K} across nodes that are children
+     * of and are {@code node}. See {@code traverse} for the traversal order
+     */
+    public <K> K fold(Node<T> node, K val, BiFunction<Node<T>, K, K> func) {
+        switch (node.getNodeType()) {
+            case LEAF:
+                return func.apply(node, val);
+
+            case POINTER:
+                val = fold(node.getNe(), val, func);
+                val = fold(node.getSe(), val, func);
+                val = fold(node.getSw(), val, func);
+                return fold(node.getNw(), val, func);
+            default:
+                return val;
+        }
+    }
 
     /**
      * Finds a leaf node with the same (x, y) coordinates as the target point, or
@@ -278,8 +287,8 @@ public class QuadTree<T> implements Map<Point2d, T>{
      *     or null if it doesn't exist.
      * @private
      */
-    public Node find(Node<T> node, double x, double y) {
-        Node resposne = null;
+    public Node<T> find(Node<T> node, double x, double y) {
+        Node<T> resposne = null;
         switch (node.getNodeType()) {
             case EMPTY:
                 break;
@@ -447,7 +456,7 @@ public class QuadTree<T> implements Map<Point2d, T>{
      *     point.
      * @private
      */
-    private Node<T> getQuadrantForPoint(Node parent, double x, double y) {
+    private Node<T> getQuadrantForPoint(Node<T> parent, double x, double y) {
         double mx = parent.getX() + parent.getW() / 2;
         double my = parent.getY() + parent.getH() / 2;
         if (x < mx) {
@@ -478,7 +487,11 @@ public class QuadTree<T> implements Map<Point2d, T>{
 
     @Override
     public boolean containsKey(Object key) {
-        return keySet().contains(key);
+        if(key instanceof Vector2d){
+            Vector2d pt = (Vector2d)key;
+            return contains(pt.x, pt.y);
+        }
+        throw new IllegalArgumentException("expected key of type Vector2d, found " + key);
     }
 
     @Override
@@ -488,15 +501,15 @@ public class QuadTree<T> implements Map<Point2d, T>{
 
     @Override
     public T get(Object key) {
-        if(key instanceof Point2d){
-            Point2d pt = (Point2d)key;
+        if(key instanceof Vector2d){
+            Vector2d pt = (Vector2d)key;
             return get(pt.x, pt.y, null);
         }
-        throw new IllegalArgumentException("expected key of type Point2d, found " + key);
+        throw new IllegalArgumentException("expected key of type Vector2d, found " + key);
     }
 
     @Override
-    public T put(Point2d key, T value) {
+    public T put(Vector2d key, T value) {
         T re = get(key);
         set(key.x, key.y, value);
         return re;
@@ -504,32 +517,111 @@ public class QuadTree<T> implements Map<Point2d, T>{
 
     @Override
     public T remove(Object key) {
-        if(key instanceof Point2d){
-            Point2d pt = (Point2d)key;
+        if(key instanceof Vector2d){
+            Vector2d pt = (Vector2d)key;
             return remove(pt.x, pt.y);
         }
-        throw new IllegalArgumentException("expected key of type Point2d, found " + key);
+        throw new IllegalArgumentException("expected key of type Vector2d, found " + key);
     }
 
     @Override
-    public void putAll(Map<? extends Point2d, ? extends T> m) {
+    public void putAll(Map<? extends Vector2d, ? extends T> m) {
         m.forEach(this::put);
     }
 
     @Override
-    public Set<Point2d> keySet() {
-        return getKeys().stream().map((pt)-> new Point2d(pt.getX(), pt.getY())).collect(Collectors.toSet());
+    public Set<Vector2d> keySet() {
+        return getKeys().stream().map((pt)-> new Vector2d(pt.getX(), pt.getY())).collect(Collectors.toSet());
     }
 
     @Override
-    public Set<Entry<Point2d, T>> entrySet() {
-        Set<Entry<Point2d, T>> entries = new HashSet<>();
+    public Set<Entry<Vector2d, T>> entrySet() {
+        Set<Entry<Vector2d, T>> entries = new HashSet<>();
         traverse(root_, (quadTree, node) -> {
             Point<T> pt = node.getPoint();
             if(node != null)
                 entries.add(new AbstractMap.SimpleImmutableEntry<>(
-                    new Point2d(pt.getX(), pt.getY()), pt.getValue()));
+                    new Vector2d(pt.getX(), pt.getY()), pt.getValue()));
         });
         return entries;
     }
+    
+    public class QuadTreeImmutable {
+        public Set<Entry<Vector2d, T>> entrySet() {
+            return QuadTree.this.entrySet();
+        }
+        public int size() {
+            return QuadTree.this.size();
+        }
+
+        public boolean containsKey(Vector2d key) {
+            return QuadTree.this.containsKey(key);
+        }
+
+        public boolean containsValue(T value) {
+            return QuadTree.this.containsValue(value);
+        }
+
+        public T get(Vector2d key) {
+            return QuadTree.this.get(key);
+        }
+
+        public Node<T>.NodeImmutable find(Node<T>.NodeImmutable node, double x, double y) {
+            Node<T> n = QuadTree.this.find(node.getPeer(), x, y);
+            return n == null ? null : n.getImmutable();
+        }
+
+        public boolean contains(double x, double y) {
+            return QuadTree.this.contains(x, y);
+        }
+
+        public Node.NodeImmutable getRootNode() {
+            return QuadTree.this.getRootNode().getImmutable();
+        }
+
+        public T get(double x, double y, T opt_default) {
+            return QuadTree.this.get(x, y, opt_default);
+        }
+
+        public boolean isEmpty() {
+            return QuadTree.this.isEmpty();
+        }
+
+        private Set<Point<T>.PointImmutable> toImmutable(Set<Point<T>> vals){
+            return vals.stream().map(Point::getImmutable).collect(Collectors.toSet());
+        }
+        
+        public Set<Point<T>.PointImmutable> getKeys() {
+            return toImmutable(QuadTree.this.getKeys());
+        }
+        public Set<T> values(){
+            return QuadTree.this.values();
+        }
+
+        public Set<Point<T>.PointImmutable> searchIntersect(final double xmin, final double ymin, final double xmax, final double ymax) {
+            return toImmutable(QuadTree.this.searchIntersect(xmin, ymin, xmax, ymax));
+        }
+
+        public Set<Point<T>.PointImmutable> searchWithin(final double xmin, final double ymin, final double xmax, final double ymax) {
+            return toImmutable(QuadTree.this.searchWithin(xmin, ymin, xmax, ymax));
+        }
+
+        public void navigate(Node<T>.NodeImmutable node, BiConsumer<QuadTree<T>.QuadTreeImmutable, Node<T>.NodeImmutable> func, double xmin, double ymin, double xmax, double ymax) {
+            QuadTree.this.navigate(node.getPeer(), (qt, n) -> func.accept(qt.getImmutable(), n.getImmutable()), xmin, ymin, xmax, ymax);
+        }
+        public void traverse(Node<T>.NodeImmutable node, BiConsumer<QuadTree<T>.QuadTreeImmutable, Node<T>.NodeImmutable> func) {
+            QuadTree.this.traverse(node.getPeer(), (qt, n) -> func.accept(qt.getImmutable(), n.getImmutable()));
+        }
+        
+        public <K> K fold(Node<T>.NodeImmutable node, K val, BiFunction<Node<T>.NodeImmutable, K, K> func) {
+            return QuadTree.this.fold(node.getPeer(), val, (n, k) -> func.apply(n.getImmutable(), k));
+        }
+    }
+    
+    private QuadTreeImmutable immutableVersion = null;
+
+    public QuadTreeImmutable getImmutable() {
+        return immutableVersion == null ? immutableVersion = new QuadTreeImmutable() : immutableVersion;
+    }
+    
 }
