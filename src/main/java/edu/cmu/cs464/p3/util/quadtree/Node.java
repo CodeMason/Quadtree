@@ -169,6 +169,10 @@ public class Node<T> {
         Node getPeer(){return Node.this;}
     }
     private NodeImmutable immutableVersion = null;
+    
+    /**
+     * @return an immutable view of this node
+     */
     public NodeImmutable getImmutable(){
         return immutableVersion == null ? immutableVersion = new NodeImmutable() : immutableVersion;
     }

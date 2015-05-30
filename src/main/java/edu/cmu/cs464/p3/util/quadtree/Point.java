@@ -65,6 +65,7 @@ public class Point<T> implements Comparable<Point> {
         }
     }
     public class PointImmutable{
+        private PointImmutable(){}
         public double getX() {
             return x;
         }
@@ -80,6 +81,10 @@ public class Point<T> implements Comparable<Point> {
         }
     }
     private PointImmutable immutableVersion = null;
+    
+    /**
+     * @return an immutable view of this point.
+     */
     public PointImmutable getImmutable(){
         return immutableVersion == null ? immutableVersion = new PointImmutable() : immutableVersion;
     }

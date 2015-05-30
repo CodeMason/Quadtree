@@ -547,6 +547,9 @@ public class QuadTree<T> implements Map<Vector2d, T>{
     }
     
     public class QuadTreeImmutable {
+
+        private QuadTreeImmutable() {}
+        
         public Set<Entry<Vector2d, T>> entrySet() {
             return QuadTree.this.entrySet();
         }
@@ -620,6 +623,9 @@ public class QuadTree<T> implements Map<Vector2d, T>{
     
     private QuadTreeImmutable immutableVersion = null;
 
+    /**
+     * @return an immutable view of this quadtree
+     */
     public QuadTreeImmutable getImmutable() {
         return immutableVersion == null ? immutableVersion = new QuadTreeImmutable() : immutableVersion;
     }
