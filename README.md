@@ -1,5 +1,7 @@
 QuadTree 
 ---------------
+zkieda : Updated and used for my CrowdSimulation project. Originally by some dude Varun Pant.
+
 The MIT License
 
 Copyright (c) 2014 Varun Pant
