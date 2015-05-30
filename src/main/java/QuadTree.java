@@ -1,5 +1,14 @@
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.vecmath.Point2d;
 
 /**
  * Datastructure: A point Quad Tree for representing 2D data. Each
@@ -7,11 +16,14 @@ import java.util.List;
  * <p/>
  * The implementation currently requires pre-determined bounds for data as it
  * can not rebalance itself to that degree.
+ * 
+ * It's important to note that we use Point2d as the key for this map, 
+ * but the keys added/recieved from this map are all copied so there should
+ * be no problems using this as a normal map (unless if there's some multi
+ * threading funny business going on).
  */
-public class QuadTree<T> {
-
-
-    private Node root_;
+public class QuadTree<T> implements Map<Point2d, T>{
+    private Node<T> root_;
     private int count_ = 0;
 
     /**
@@ -32,7 +44,7 @@ public class QuadTree<T> {
      *
      * @return {Node} The root node.
      */
-    public Node getRootNode() {
+    public Node<T> getRootNode() {
         return this.root_;
     }
 
@@ -45,7 +57,7 @@ public class QuadTree<T> {
      */
     public void set(double x, double y, T value) {
 
-        Node root = this.root_;
+        Node<T> root = this.root_;
         if (x < root.getX() || y < root.getY() || x > root.getX() + root.getW() || y > root.getY() + root.getH()) {
             throw new QuadTreeException("Out of bounds : (" + x + ", " + y + ")");
         }
@@ -66,7 +78,7 @@ public class QuadTree<T> {
      *         has been provided.
      */
     public T get(double x, double y, T opt_default) {
-        Node node = this.find(this.root_, x, y);
+        Node<T> node = this.find(this.root_, x, y);
         return node != null ? node.getPoint().getValue() : opt_default;
     }
 
@@ -79,7 +91,7 @@ public class QuadTree<T> {
      *         node doesn't exist.
      */
     public T remove(double x, double y) {
-        Node node = this.find(this.root_, x, y);
+        Node<T> node = this.find(this.root_, x, y);
         if (node != null) {
             T value = node.getPoint().getValue();
             node.setPoint(null);
@@ -134,10 +146,10 @@ public class QuadTree<T> {
      * Returns a set containing the coordinates of each point stored in the tree.
      * @return coordinates.
      */
-    public Set<Point> getKeys() {
-        final Set<Point> arr = new HashSet<>();
+    public Set<Point<T>> getKeys() {
+        final Set<Point<T>> arr = new HashSet<>();
         this.traverse(this.root_, (quadTree, node) -> 
-                arr.add(node.getPoint());
+                arr.add(node.getPoint())
             );
         return arr;
     }
@@ -146,7 +158,7 @@ public class QuadTree<T> {
      * Returns a set containing all values stored within the tree.
      * @return The values stored within the tree.
      */
-    public Set<T> getValues() {
+    public Set<T> values() {
         final Set<T> arr = new HashSet<>();
         this.traverse(this.root_, (quadTree, node) -> 
                 arr.add(node.getPoint().getValue())
@@ -155,8 +167,8 @@ public class QuadTree<T> {
         return arr;
     }
 
-    public Point[] searchIntersect(final double xmin, final double ymin, final double xmax, final double ymax) {
-        final List<Point> arr = new ArrayList<Point>();
+    public Set<Point<T>> searchIntersect(final double xmin, final double ymin, final double xmax, final double ymax) {
+        final Set<Point<T>> arr = new HashSet<>();
         this.navigate(this.root_, (quadTree, node) -> {
                 Point pt = node.getPoint();
                 if (pt.getX() < xmin || pt.getX() > xmax || pt.getY() < ymin || pt.getY() > ymax) {
@@ -165,24 +177,24 @@ public class QuadTree<T> {
                     arr.add(node.getPoint());
                 }
             }, xmin, ymin, xmax, ymax);
-        return arr.toArray(new Point[arr.size()]);
+        return arr;
     }
 
-    public Point[] searchWithin(final double xmin, final double ymin, final double xmax, final double ymax) {
-        final List<Point> arr = new ArrayList<Point>();
+    public Set<Point<T>> searchWithin(final double xmin, final double ymin, final double xmax, final double ymax) {
+        final Set<Point<T>> arr = new HashSet<>();
         this.navigate(this.root_, (quadTree, node) -> {
                 Point pt = node.getPoint();
                 if (pt.getX() > xmin && pt.getX() < xmax && pt.getY() > ymin && pt.getY() < ymax) {
                     arr.add(node.getPoint());
                 }
             }, xmin, ymin, xmax, ymax);
-        return arr.toArray(new Point[arr.size()]);
+        return arr;
     }
 
-    public void navigate(Node node, BiConsumer<Quadtree, Node> func, double xmin, double ymin, double xmax, double ymax) {
+    public void navigate(Node<T> node, BiConsumer<QuadTree, Node<T>> func, double xmin, double ymin, double xmax, double ymax) {
         switch (node.getNodeType()) {
             case LEAF:
-                func.call(this, node);
+                func.accept(this, node);
                 break;
 
             case POINTER:
@@ -200,7 +212,7 @@ public class QuadTree<T> {
         }
     }
 
-    private boolean intersects(double left, double bottom, double right, double top, Node node) {
+    private boolean intersects(double left, double bottom, double right, double top, Node<T> node) {
         return !(node.getX() > right ||
                 (node.getX() + node.getW()) < left ||
                 node.getY() > bottom ||
@@ -237,10 +249,10 @@ public class QuadTree<T> {
      *     return value is irrelevant.
      * @private
      */
-    public void traverse(Node node, BiConsumer<Quadtree<T>, Node func) {
+    public void traverse(Node<T> node, BiConsumer<QuadTree<T>, Node<T>> func) {
         switch (node.getNodeType()) {
             case LEAF:
-                func.call(this, node);
+                func.accept(this, node);
                 break;
 
             case POINTER:
@@ -264,7 +276,7 @@ public class QuadTree<T> {
      *     or null if it doesn't exist.
      * @private
      */
-    public Node find(Node node, double x, double y) {
+    public Node find(Node<T> node, double x, double y) {
         Node resposne = null;
         switch (node.getNodeType()) {
             case EMPTY:
@@ -294,8 +306,8 @@ public class QuadTree<T> {
      *     reset.
      * @private
      */
-    private boolean insert(Node parent, Point point) {
-        Boolean result = false;
+    private boolean insert(Node<T> parent, Point<T> point) {
+        boolean result = false;
         switch (parent.getNodeType()) {
             case EMPTY:
                 this.setPointForNode(parent, point);
@@ -327,8 +339,8 @@ public class QuadTree<T> {
      * @param {QuadTree.Node} node The node to split.
      * @private
      */
-    private void split(Node node) {
-        Point oldPoint = node.getPoint();
+    private void split(Node<T> node) {
+        Point<T> oldPoint = node.getPoint();
         node.setPoint(null);
 
         node.setNodeType(NodeType.POINTER);
@@ -352,7 +364,7 @@ public class QuadTree<T> {
      * @param {QuadTree.Node} node The node to balance.
      * @private
      */
-    private void balance(Node node) {
+    private void balance(Node<T> node) {
         switch (node.getNodeType()) {
             case EMPTY:
             case LEAF:
@@ -362,11 +374,11 @@ public class QuadTree<T> {
                 break;
 
             case POINTER: {
-                Node nw = node.getNw();
-                Node ne = node.getNe();
-                Node sw = node.getSw();
-                Node se = node.getSe();
-                Node firstLeaf = null;
+                Node<T> nw = node.getNw();
+                Node<T> ne = node.getNe();
+                Node<T> sw = node.getSw();
+                Node<T> se = node.getSe();
+                Node<T> firstLeaf = null;
 
                 // Look for the first non-empty child, if there is more than one then we
                 // break as this node can't be balanced.
@@ -433,7 +445,7 @@ public class QuadTree<T> {
      *     point.
      * @private
      */
-    private Node getQuadrantForPoint(Node parent, double x, double y) {
+    private Node<T> getQuadrantForPoint(Node parent, double x, double y) {
         double mx = parent.getX() + parent.getW() / 2;
         double my = parent.getY() + parent.getH() / 2;
         if (x < mx) {
@@ -449,11 +461,73 @@ public class QuadTree<T> {
      * @param {QuadTree.Point} point The point to set.
      * @private
      */
-    private void setPointForNode(Node node, Point point) {
+    private void setPointForNode(Node<T> node, Point<T> point) {
         if (node.getNodeType() == NodeType.POINTER) {
             throw new QuadTreeException("Can not set point for node of type POINTER");
         }
         node.setNodeType(NodeType.LEAF);
         node.setPoint(point);
+    }
+
+    @Override
+    public int size() {
+        return count_;
+    }
+
+    @Override
+    public boolean containsKey(Object key) {
+        return keySet().contains(key);
+    }
+
+    @Override
+    public boolean containsValue(Object value) {
+        return values().contains(value);
+    }
+
+    @Override
+    public T get(Object key) {
+        if(key instanceof Point2d){
+            Point2d pt = (Point2d)key;
+            return get(pt.x, pt.y, null);
+        }
+        throw new IllegalArgumentException("expected key of type Point2d, found " + key);
+    }
+
+    @Override
+    public T put(Point2d key, T value) {
+        T re = get(key);
+        set(key.x, key.y, value);
+        return re;
+    }
+
+    @Override
+    public T remove(Object key) {
+        if(key instanceof Point2d){
+            Point2d pt = (Point2d)key;
+            return remove(pt.x, pt.y);
+        }
+        throw new IllegalArgumentException("expected key of type Point2d, found " + key);
+    }
+
+    @Override
+    public void putAll(Map<? extends Point2d, ? extends T> m) {
+        m.forEach(this::put);
+    }
+
+    @Override
+    public Set<Point2d> keySet() {
+        return getKeys().stream().map((pt)-> new Point2d(pt.getX(), pt.getY())).collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<Entry<Point2d, T>> entrySet() {
+        Set<Entry<Point2d, T>> entries = new HashSet<>();
+        traverse(root_, (quadTree, node) -> {
+            Point<T> pt = node.getPoint();
+            if(node != null)
+                entries.add(new AbstractMap.SimpleImmutableEntry<>(
+                    new Point2d(pt.getX(), pt.getY()), pt.getValue()));
+        });
+        return entries;
     }
 }
