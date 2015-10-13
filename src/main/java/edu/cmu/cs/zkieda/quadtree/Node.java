@@ -1,4 +1,4 @@
-package edu.cmu.cs464.p3.util.quadtree;
+package edu.cmu.cs.zkieda.quadtree;
 
 public class Node<T> {
 

@@ -1,4 +1,4 @@
-package edu.cmu.cs464.p3.util.quadtree;
+package edu.cmu.cs.zkieda.quadtree;
 
 import java.util.AbstractMap;
 import java.util.HashSet;
@@ -617,7 +617,7 @@ public class QuadTree<T> implements Map<Vector2d, T>{
         }
         
         public <K> K fold(Node<T>.NodeImmutable node, K val, BiFunction<Node<T>.NodeImmutable, K, K> func) {
-            return QuadTree.this.fold(node.getPeer(), val, (n, k) -> func.apply(n.getImmutable(), k));
+            return (K)QuadTree.this.fold(node.getPeer(), val, (n, k) -> func.apply(n.getImmutable(), k));
         }
     }
     

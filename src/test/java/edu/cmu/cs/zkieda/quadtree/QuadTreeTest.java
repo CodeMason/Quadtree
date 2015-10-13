@@ -1,11 +1,12 @@
-package edu.cmu.cs464.p3.util.quadtree;
+package edu.cmu.cs.zkieda.quadtree;
 
-import edu.cmu.cs464.p3.util.quadtree.Point;
-import edu.cmu.cs464.p3.util.quadtree.Node;
-import edu.cmu.cs464.p3.util.quadtree.QuadTree;
-import edu.cmu.cs464.p3.util.quadtree.NodeType;
 import java.util.ArrayList;
 import org.junit.Test;
+
+import edu.cmu.cs.zkieda.quadtree.Node;
+import edu.cmu.cs.zkieda.quadtree.NodeType;
+import edu.cmu.cs.zkieda.quadtree.Point;
+import edu.cmu.cs.zkieda.quadtree.QuadTree;
 
 import java.util.Arrays;
 import java.util.List;

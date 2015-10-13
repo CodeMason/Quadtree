@@ -1,8 +1,9 @@
-package edu.cmu.cs464.p3.util.quadtree;
+package edu.cmu.cs.zkieda.quadtree;
 
-import edu.cmu.cs464.p3.util.quadtree.QuadTree;
-import edu.cmu.cs464.p3.util.quadtree.Point;
 import org.junit.Test;
+
+import edu.cmu.cs.zkieda.quadtree.Point;
+import edu.cmu.cs.zkieda.quadtree.QuadTree;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
